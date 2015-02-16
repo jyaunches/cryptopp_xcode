@@ -16,7 +16,7 @@
 		2760A4601A8425AD000910EB /* Images.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 2760A45F1A8425AD000910EB /* Images.xcassets */; };
 		2760A4631A8425AD000910EB /* LaunchScreen.xib in Resources */ = {isa = PBXBuildFile; fileRef = 2760A4611A8425AD000910EB /* LaunchScreen.xib */; };
 		2760A4981A8427C6000910EB /* libcryptopp.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 2760A4971A8427C6000910EB /* libcryptopp.a */; };
-		2760A4A21A842942000910EB /* UnitTests.m in Sources */ = {isa = PBXBuildFile; fileRef = 2760A4A11A842942000910EB /* UnitTests.m */; };
+		2760A4A21A842942000910EB /* KeyChainServiceSpec.m in Sources */ = {isa = PBXBuildFile; fileRef = 2760A4A11A842942000910EB /* KeyChainServiceSpec.m */; };
 		2760A4A91A842BD2000910EB /* Accelerate.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2760A4A81A842BD2000910EB /* Accelerate.framework */; };
 		2760A4AB1A842BD9000910EB /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2760A4AA1A842BD9000910EB /* AudioToolbox.framework */; };
 		2760A4AD1A842BDE000910EB /* CFNetwork.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2760A4AC1A842BDE000910EB /* CFNetwork.framework */; };
@@ -60,7 +60,7 @@
 		2760A4971A8427C6000910EB /* libcryptopp.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; name = libcryptopp.a; path = "/usr/local/cryptopp-ios/lib/libcryptopp.a"; sourceTree = "<absolute>"; };
 		2760A49D1A842942000910EB /* UnitTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = UnitTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		2760A4A01A842942000910EB /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
-		2760A4A11A842942000910EB /* UnitTests.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = UnitTests.m; sourceTree = "<group>"; };
+		2760A4A11A842942000910EB /* KeyChainServiceSpec.m */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.objc; path = KeyChainServiceSpec.m; sourceTree = "<group>"; };
 		2760A4A81A842BD2000910EB /* Accelerate.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Accelerate.framework; path = System/Library/Frameworks/Accelerate.framework; sourceTree = SDKROOT; };
 		2760A4AA1A842BD9000910EB /* AudioToolbox.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AudioToolbox.framework; path = System/Library/Frameworks/AudioToolbox.framework; sourceTree = SDKROOT; };
 		2760A4AC1A842BDE000910EB /* CFNetwork.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = CFNetwork.framework; path = System/Library/Frameworks/CFNetwork.framework; sourceTree = SDKROOT; };
@@ -194,7 +194,7 @@
 		2760A49E1A842942000910EB /* UnitTests */ = {
 			isa = PBXGroup;
 			children = (
-				2760A4A11A842942000910EB /* UnitTests.m */,
+				2760A4A11A842942000910EB /* KeyChainServiceSpec.m */,
 				2760A49F1A842942000910EB /* Supporting Files */,
 			);
 			path = UnitTests;
@@ -399,7 +399,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				2760A4A21A842942000910EB /* UnitTests.m in Sources */,
+				2760A4A21A842942000910EB /* KeyChainServiceSpec.m in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

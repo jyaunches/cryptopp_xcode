@@ -69,10 +69,12 @@ void SavePublicKey(const PublicKey& key, const string& file = "ecies.public.key"
 void LoadPrivateKey(PrivateKey& key, const string& file = "ecies.private.key");
 void LoadPublicKey(PublicKey& key, const string& file = "ecies.public.key");
 
-static const string message("Now is the time for all good men to come to the aide of their country.");
+
 @implementation EncryptionService
 
 -(void)doStuff{
+    NSString *message = @"Now is the time for all good men. Now is the time for all good men.";
+    
     AutoSeededRandomPool prng;
 
     /////////////////////////////////////////////////
@@ -123,26 +125,28 @@ static const string message("Now is the time for all good men to come to the aid
 
     /////////////////////////////////////////////////
     // Part four - encrypt/decrypt with e0/d1
+    
+    NSData *messageAsData = [message dataUsingEncoding:NSASCIIStringEncoding];
 
     string em0; // encrypted message
-    StringSource ss1 (message, true, new PK_EncryptorFilter(prng, e0, new StringSink(em0) ) );
+    StringSource ss1 ([message cStringUsingEncoding:NSASCIIStringEncoding], true, new PK_EncryptorFilter(prng, e0, new StringSink(em0) ) );
+
     string dm0; // decrypted message
     StringSource ss2 (em0, true, new PK_DecryptorFilter(prng, d1, new StringSink(dm0) ) );
 
-
-    //string encoded; // encoded (pretty print)
-    //StringSource ss3(em0, true, new HexEncoder(new StringSink(encoded)));
-
-    //cout << "Ciphertext (" << encoded.size()/2 << "):" << endl << "  ";
-    //cout << encoded << endl;
-    //cout << "Recovered:" << endl << "  ";
-    cout << dm0 << endl;
+//    string encoded; //encoded (pretty print)
+//    StringSource ss3(em0, true, new HexEncoder(new StringSink(encoded)));
+//
+//    cout << "Ciphertext (" << encoded.size()/2 << "):" << endl << "  ";
+//    cout << encoded << endl;
+//    cout << "Recovered:" << endl << "  ";
+//    cout << dm0 << endl;
 
     /////////////////////////////////////////////////
     // Part five - encrypt/decrypt with e1/d0
 
     string em1; // encrypted message
-    StringSource ss4 (message, true, new PK_EncryptorFilter(prng, e1, new StringSink(em1) ) );
+    StringSource ss4 ([message cStringUsingEncoding:NSASCIIStringEncoding], true, new PK_EncryptorFilter(prng, e1, new StringSink(em1) ) );
     string dm1; // decrypted message
     StringSource ss5 (em1, true, new PK_DecryptorFilter(prng, d0, new StringSink(dm1) ) );
 
@@ -152,33 +156,70 @@ static const string message("Now is the time for all good men to come to the aid
     //cout << encoded << endl;
     //cout << "Recovered:" << endl << "  ";
     cout << dm1 << endl;
-
-
-    // Do any additional setup after loading the view, typically from a nib.
 }
 
 void SavePrivateKey(const PrivateKey& key, const string& file)
 {
-    FileSink sink(file.c_str());
+    NSString *fileName = [NSString stringWithCString:file.c_str()
+                       encoding:[NSString defaultCStringEncoding]];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documemtDirectory = documentDirectories[0];
+    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
+    BOOL exists = [fileManager fileExistsAtPath:archivePath];
+    if(exists) {
+        [fileManager removeItemAtPath:archivePath error:nil];
+    }
+
+    FileSink sink([archivePath cStringUsingEncoding:NSASCIIStringEncoding]);
     key.Save(sink);
 }
 
 void SavePublicKey(const PublicKey& key, const string& file)
 {
-    FileSink sink(file.c_str());
+    NSString *fileName = [NSString stringWithCString:file.c_str()
+                                            encoding:[NSString defaultCStringEncoding]];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documemtDirectory = documentDirectories[0];
+    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
+    BOOL exists = [fileManager fileExistsAtPath:archivePath];
+    if(exists) {
+        [fileManager removeItemAtPath:archivePath error:nil];
+    }
+
+    FileSink sink([archivePath cStringUsingEncoding:NSASCIIStringEncoding]);
     key.Save(sink);
 }
 
 void LoadPrivateKey(PrivateKey& key, const string& file)
 {
-    FileSource source(file.c_str(), true);
-    key.Load(source);
+    NSString *fileName = [NSString stringWithCString:file.c_str()
+                                            encoding:[NSString defaultCStringEncoding]];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documemtDirectory = documentDirectories[0];
+    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
+    BOOL exists = [fileManager fileExistsAtPath:archivePath];
+    if(exists) {
+        FileSource source([archivePath cStringUsingEncoding:NSASCIIStringEncoding], true);
+        key.Load(source);
+    }
 }
 
 void LoadPublicKey(PublicKey& key, const string& file)
 {
-    FileSource source(file.c_str(), true);
-    key.Load(source);
+    NSString *fileName = [NSString stringWithCString:file.c_str()
+                                            encoding:[NSString defaultCStringEncoding]];
+    NSFileManager *fileManager = [NSFileManager defaultManager];
+    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
+    NSString *documemtDirectory = documentDirectories[0];
+    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
+    BOOL exists = [fileManager fileExistsAtPath:archivePath];
+    if(exists) {
+        FileSource source([archivePath cStringUsingEncoding:NSASCIIStringEncoding], true);
+        key.Load(source);
+    }
 }
 
 void PrintPrivateKey(const DL_PrivateKey_EC<ECP>& key, ostream& out)

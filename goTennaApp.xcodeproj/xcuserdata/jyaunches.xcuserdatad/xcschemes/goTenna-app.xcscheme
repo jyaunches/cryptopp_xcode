@@ -60,16 +60,6 @@
             skipped = "NO">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "2760A4671A8425AD000910EB"
-               BuildableName = "goTennaAppTests.xctest"
-               BlueprintName = "goTennaAppTests"
-               ReferencedContainer = "container:goTennaApp.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
-         <TestableReference
-            skipped = "NO">
-            <BuildableReference
-               BuildableIdentifier = "primary"
                BlueprintIdentifier = "2760A49C1A842942000910EB"
                BuildableName = "UnitTests.xctest"
                BlueprintName = "UnitTests"

@@ -20,7 +20,6 @@
     [super viewDidLoad];
     EncryptionService *service = [[EncryptionService alloc] init];
     [service doStuff];
-    
 }
 
 - (void)didReceiveMemoryWarning {
