@@ -1,0 +1,6 @@
+The repository is a testing of integration of the cryptopp-5.6.2-ios library into an xcode project.
+
+Following insruction here for building the project locally:
+https://github.com/noloader/cryptopp-5.6.2-ios
+
+If you build the library and put it in usr/local as described, this xcode project should build and run!
