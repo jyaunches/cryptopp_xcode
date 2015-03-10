@@ -43,23 +43,6 @@ void PrintPublicKey(const goTennaPublicKeyType& key, ostream& out = cout);
 typedef goTennaCryptoContactECIES cryptoContactType;
 //typedef goTennaCryptoContactAESCBC cryptoContactType;
 
-/* Vlad: Below NSString helpers are absolutely unnecessary, I'm just unfamiliar w/ ObjC & Cocoa */
-
-/*
-// strlen of sorts
-static inline size_t NSSStringNumBytes(const NSString &str, const NSStringEncoding &encoding) {
-    return [&str lengthOfBytesUsingEncoding:encoding];
-}
-
-static inline const byte *NSSStringGetBytes(const NSString &str, const NSStringEncoding &encoding) {
-    return [&str dataUsingEncoding:encoding];
-}
-
-static inline const char *NSSStringGetCStr(const NSString &str, const NSStringEncoding &encoding) {
-    return [&str cStringUsingEncoding:encoding];
-}
-*/
-
 @implementation EncryptionService
 -(void)doStuff{
 #if !defined(NDEBUG) && defined(LGTC_DEBUG)
