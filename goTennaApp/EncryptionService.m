@@ -5,276 +5,309 @@
 //  Created by Julietta Yaunches on 2/6/15.
 //  Copyright (c) 2015 Julietta Yaunches. All rights reserved.
 //
+//  (Vlad Zbarsky also contributed)
 
 #import "EncryptionService.h"
+
+#include <cryptopp/goTennaCrypto.h>
+
+// checking asserts only in debug builds
+#if !defined(NDEBUG) && defined(LGTC_DEBUG)
+#include <assert.h>
+#define		LGTC_ENSURE(x)	assert(x);
+#else
+#define		LGTC_ENSURE(x)
+#endif // !NDEBUG && LGTC_DEBUG
+
 #include <iostream>
 using std::ostream;
 using std::cout;
+using std::cerr;
 using std::endl;
 
 #include <string>
 using std::string;
 
-#include <cryptopp/files.h>
-using CryptoPP::FileSink;
-using CryptoPP::FileSource;
+#include <stdexcept>
+using std::runtime_error;
 
-#include <cryptopp/hex.h>
-using CryptoPP::HexEncoder;
+#include <cryptopp/misc.h>
+using CryptoPP::IntToString;
 
-#include <cryptopp/filters.h>
-using CryptoPP::StringSink;
-using CryptoPP::StringSource;
-using CryptoPP::PK_EncryptorFilter;
-using CryptoPP::PK_DecryptorFilter;
+using CryptoPP::ArraySource;
 
-#include <cryptopp/osrng.h>
-using CryptoPP::AutoSeededRandomPool;
+void PrintPrivateKey(const goTennaPrivateKeyType& key, ostream& out = cout);
+void PrintPublicKey(const goTennaPublicKeyType& key, ostream& out = cout);
 
-#include <cryptopp/integer.h>
-using CryptoPP::Integer;
+// here you can switch between ECIES procotol and AES-CBC protocol (when implemented)
+typedef goTennaCryptoContactECIES cryptoContactType;
+//typedef goTennaCryptoContactAESCBC cryptoContactType;
 
-#include <cryptopp/pubkey.h>
-using CryptoPP::PublicKey;
-using CryptoPP::PrivateKey;
+/* Vlad: Below NSString helpers are absolutely unnecessary, I'm just unfamiliar w/ ObjC & Cocoa */
 
-#include <cryptopp/eccrypto.h>
-using CryptoPP::ECP;    // Prime field
-using CryptoPP::EC2N;   // Binary field
-using CryptoPP::ECIES;
-using CryptoPP::ECPPoint;
-using CryptoPP::DL_GroupParameters_EC;
-using CryptoPP::DL_GroupPrecomputation;
-using CryptoPP::DL_FixedBasePrecomputation;
+/*
+// strlen of sorts
+static inline size_t NSSStringNumBytes(const NSString &str, const NSStringEncoding &encoding) {
+    return [&str lengthOfBytesUsingEncoding:encoding];
+}
 
-#include <cryptopp/pubkey.h>
-using CryptoPP::DL_PrivateKey_EC;
-using CryptoPP::DL_PublicKey_EC;
+static inline const byte *NSSStringGetBytes(const NSString &str, const NSStringEncoding &encoding) {
+    return [&str dataUsingEncoding:encoding];
+}
 
-#include <cryptopp/asn.h>
-#include <cryptopp/oids.h>
-namespace ASN1 = CryptoPP::ASN1;
-
-#include <cryptopp/cryptlib.h>
-using CryptoPP::PK_Encryptor;
-using CryptoPP::PK_Decryptor;
-using CryptoPP::g_nullNameValuePairs;
-
-void PrintPrivateKey(const DL_PrivateKey_EC<ECP>& key, ostream& out = cout);
-void PrintPublicKey(const DL_PublicKey_EC<ECP>& key, ostream& out = cout);
-
-void SavePrivateKey(const PrivateKey& key, const string& file = "ecies.private.key");
-void SavePublicKey(const PublicKey& key, const string& file = "ecies.public.key");
-
-void LoadPrivateKey(PrivateKey& key, const string& file = "ecies.private.key");
-void LoadPublicKey(PublicKey& key, const string& file = "ecies.public.key");
-
+static inline const char *NSSStringGetCStr(const NSString &str, const NSStringEncoding &encoding) {
+    return [&str cStringUsingEncoding:encoding];
+}
+*/
 
 @implementation EncryptionService
-
 -(void)doStuff{
-    NSString *message = @"Now is the time for all good men. Now is the time for all good men.";
+#if !defined(NDEBUG) && defined(LGTC_DEBUG)
+    cout << "Debug build, asserts enabled" << endl << endl;
+#else
+    cout << "Release build, asserts disabled" << endl << endl;
+#endif // !NDEBUG && LGTC_DEBUG
     
     AutoSeededRandomPool prng;
-
-    /////////////////////////////////////////////////
-    // Part one - generate keys
-
-    ECIES<ECP>::Decryptor d0(prng, ASN1::secp256r1());
-    PrintPrivateKey(d0.GetKey());
-
-    ECIES<ECP>::Encryptor e0(d0);
-    PrintPublicKey(e0.GetKey());
-
-    // This crashes due to NotImplemented exception, but it should work since we are
-    // trying to generate a random private key (private exponent), and not a curve.
-    // http://sourceforge.net/tracker/?func=detail&aid=3598113&group_id=6152&atid=356152
-    //ECIES<ECP>::Decryptor d3;
-    //d3.AccessKey().AccessGroupParameters().Initialize(ASN1::secp256r1());
-    //d3.AccessKey().GenerateRandom(prng, g_nullNameValuePairs);
-
-    // Do this instead if desired or required
-    //ECIES<ECP>::Decryptor d4;
-    //d4.AccessKey().AccessGroupParameters().Initialize(prng, ASN1::secp256r1());
-
-    // Do this instead if desired or required
-    //ECIES<ECP>::Decryptor d5;
-    //d5.AccessKey().AccessGroupParameters().Initialize(ASN1::secp256r1());
-    //Integer x(prng, Integer::One(), d5.AccessKey().GetGroupParameters().GetSubgroupOrder()-1);
-    //d5.AccessKey().SetPrivateExponent(x);
-    //PrintPrivateKey(d5.GetKey());
-
-    /////////////////////////////////////////////////
-    // Part two - save keys
-    //   Get* returns a const reference
-
-    SavePrivateKey(d0.GetPrivateKey());
-    SavePublicKey(e0.GetPublicKey());
-
-    /////////////////////////////////////////////////
-    // Part three - load keys
-    //   Access* returns a non-const reference
-
-    ECIES<ECP>::Decryptor d1;
-    LoadPrivateKey(d1.AccessPrivateKey());
-    d1.GetPrivateKey().ThrowIfInvalid(prng, 3);
-
-    ECIES<ECP>::Encryptor e1;
-    LoadPublicKey(e1.AccessPublicKey());
-    e1.GetPublicKey(). ThrowIfInvalid(prng, 3);
-
-    /////////////////////////////////////////////////
-    // Part four - encrypt/decrypt with e0/d1
     
-    NSData *messageAsData = [message dataUsingEncoding:NSASCIIStringEncoding];
+    //cout << "Using elliptic curve " << ECC_CURVE << endl;
+    
+    // ECC keypairs for Alice and Bob
+    goTennaPrivateKeyType AlicePrivateKey, BobPrivateKey;
+    SecByteBlock AlicePrivateKeyExported, BobPrivateKeyExported;
+    goTennaPublicKeyType AlicePublicKey, BobPublicKey;
+    SecByteBlock AlicePublicKeyExported, BobPublicKeyExported;
+    
+    // Alice generates her own keypair
+    AlicePrivateKey.Initialize(prng, ECC_CURVE);
+    AlicePrivateKey.AccessGroupParameters().SetPointCompression(true);
+    if (false == AlicePrivateKey.Validate (prng, 2))
+        throw runtime_error ("Alice's private key validation failed");
+    cout << "Alice generated her private key:" << endl;
+    PrintPrivateKey(AlicePrivateKey);
+    AlicePrivateKey.MakePublicKey(AlicePublicKey);
+    AlicePublicKey.AccessGroupParameters().SetPointCompression(true);
+    if (false == AlicePublicKey.Validate (prng, 2))
+        throw runtime_error ("Alice's public key validation failed");
+    cout << "Alice generated her public key:" << endl;
+    PrintPublicKey(AlicePublicKey);
+    
+    // Alice exports her keypair to byte arrays
+    size_t AlicePublicKeyExportedLen = publicKeyToBytes(AlicePublicKey, AlicePublicKeyExported);
+    cout << "Alice's public key takes " + IntToString(AlicePublicKeyExportedLen) + " bytes in exported format" << endl;
+    size_t AlicePrivateKeyExportedLen = privateKeyToBytes(AlicePrivateKey, AlicePrivateKeyExported);
+    cout << "Alice's private key takes " + IntToString(AlicePrivateKeyExportedLen) + " bytes in exported format" << endl;
+    
+    // Bob generates his own keypair
+    BobPrivateKey.Initialize(prng, ECC_CURVE);
+    BobPrivateKey.AccessGroupParameters().SetPointCompression(true);
+    if (false == BobPrivateKey.Validate (prng, 2))
+        throw runtime_error ("Bob's private key validation failed");
+    cout << endl << "Bob generated his private key:" << endl;
+    PrintPrivateKey(BobPrivateKey);
+    BobPrivateKey.MakePublicKey(BobPublicKey);
+    BobPublicKey.AccessGroupParameters().SetPointCompression(true);
+    if (false == BobPublicKey.Validate (prng, 2))
+        throw runtime_error ("Bob's public key validation failed");
+    cout << "Bob generated his public key:" << endl;
+    PrintPublicKey(BobPublicKey);
+    
+    // Bob exports his keypair to byte arrays
+    size_t BobPublicKeyExportedLen = publicKeyToBytes(BobPublicKey, BobPublicKeyExported);
+    cout << "Bob's public key takes " + IntToString(BobPublicKeyExportedLen) + " bytes in exported format" << endl;
+    size_t BobPrivateKeyExportedLen = privateKeyToBytes(BobPrivateKey, BobPrivateKeyExported);
+    cout << "Bob's private key takes " + IntToString(BobPrivateKeyExportedLen) + " bytes in exported format" << endl;
+    
+    // Alice sends her public key to Bob
+    const byte *AlicePublicKeyBytes = AlicePublicKeyExported.BytePtr();
+    
+    // Bob receives Alice's public key, and creates a cryptographic object representing his contact with Alice
+    cryptoContactType BobsContactForAlice(BobPrivateKey, BobPublicKey, AlicePublicKeyBytes, AlicePublicKeyExportedLen);
+    
+    // Bob sends his public key to Alice
+    const byte *BobPublicKeyBytes = BobPublicKeyExported.BytePtr();
+    
+    // Alice creates a cryptographic object representing her contact with Bob
+    cryptoContactType AlicesContactForBob(AlicePrivateKey, AlicePublicKey, BobPublicKeyBytes, BobPublicKeyExportedLen);
+    
+    // Alice initiates a session with Bob: differs per protocol, happens implicitly inside encryptMessage/decryptMessage calls, on as-needed basis
+    
+    // Alice encrypts and sends a text message to Bob
+    string cleartextMessageStr = "1234567890", decryptedMessageStr;
+    size_t cleartextMessageLen = cleartextMessageStr.size();
+    SecByteBlock encryptedMessage;
+    size_t encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+    LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
+    cout << endl << "Alice encrypts message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
+    << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Bob" << endl;
+    
+    // print encrypted message once, to ensure that it was actually encrypted
+    string encoded; // encoded (pretty print)
+    ArraySource enc_to_hex(encryptedMessage.BytePtr(), encryptedMessageLen, true, new HexEncoder(new StringSink(encoded)));
+    cout << "Encrypted message \"" << encoded << "\"" << endl << endl;
 
-    string em0; // encrypted message
-    StringSource ss1 ([message cStringUsingEncoding:NSASCIIStringEncoding], true, new PK_EncryptorFilter(prng, e0, new StringSink(em0) ) );
-
-    string dm0; // decrypted message
-    StringSource ss2 (em0, true, new PK_DecryptorFilter(prng, d1, new StringSink(dm0) ) );
-
-//    string encoded; //encoded (pretty print)
-//    StringSource ss3(em0, true, new HexEncoder(new StringSink(encoded)));
-//
-//    cout << "Ciphertext (" << encoded.size()/2 << "):" << endl << "  ";
-//    cout << encoded << endl;
-//    cout << "Recovered:" << endl << "  ";
-//    cout << dm0 << endl;
-
-    /////////////////////////////////////////////////
-    // Part five - encrypt/decrypt with e1/d0
-
-    string em1; // encrypted message
-    StringSource ss4 ([message cStringUsingEncoding:NSASCIIStringEncoding], true, new PK_EncryptorFilter(prng, e1, new StringSink(em1) ) );
-    string dm1; // decrypted message
-    StringSource ss5 (em1, true, new PK_DecryptorFilter(prng, d0, new StringSink(dm1) ) );
-
-    //StringSource ss6(em1, true, new HexEncoder(new StringSink(encoded)));
-
-    //cout << "Ciphertext (" << encoded.size()/2 << "):" << endl << "  ";
-    //cout << encoded << endl;
-    //cout << "Recovered:" << endl << "  ";
-    cout << dm1 << endl;
-}
-
-void SavePrivateKey(const PrivateKey& key, const string& file)
-{
-    NSString *fileName = [NSString stringWithCString:file.c_str()
-                       encoding:[NSString defaultCStringEncoding]];
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documemtDirectory = documentDirectories[0];
-    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
-    BOOL exists = [fileManager fileExistsAtPath:archivePath];
-    if(exists) {
-        [fileManager removeItemAtPath:archivePath error:nil];
+    // Bob decrypts and reads Alice's message
+    SecByteBlock decryptedMessage;
+    size_t decryptedMessageLen = BobsContactForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+    if (decryptedMessageLen == 0) { // that would mean decryption failed
+        cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
+    } else { // decryption succeeded
+        decryptedMessageStr = string((char*) decryptedMessage.BytePtr(), decryptedMessageLen);
+        cout << "Bob decrypted message from Alice: \"" << decryptedMessageStr << "\" (" << encryptedMessageLen << " bytes before decryption, " \
+        << decryptedMessageLen << " bytes after decryption)" << endl;
+        if (0 != decryptedMessageStr.compare(cleartextMessageStr))
+            cerr << "ERROR!!!: Message decrypted by Bob doesn't match one sent by Alice" << endl;
     }
-
-    FileSink sink([archivePath cStringUsingEncoding:NSASCIIStringEncoding]);
-    key.Save(sink);
-}
-
-void SavePublicKey(const PublicKey& key, const string& file)
-{
-    NSString *fileName = [NSString stringWithCString:file.c_str()
-                                            encoding:[NSString defaultCStringEncoding]];
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documemtDirectory = documentDirectories[0];
-    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
-    BOOL exists = [fileManager fileExistsAtPath:archivePath];
-    if(exists) {
-        [fileManager removeItemAtPath:archivePath error:nil];
+    LGTC_ENSURE(decryptedMessageLen > 0);
+    
+    // Bob sends text message to Alice
+    cleartextMessageStr = "The quick brown fox jumps over the lazy dog";
+    cleartextMessageLen = cleartextMessageStr.size();
+    encryptedMessageLen = BobsContactForAlice.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+    LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
+    cout << endl << "Bob encrypts message \"" << cleartextMessageStr << "\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
+    << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Alice" << endl;
+    
+   	// ... on the way it gets corrupted (0th byte gets flipped)
+   	cout << endl << "On the way it gets corrupted (0th byte gets flipped)" << endl << endl;
+   	encryptedMessage.BytePtr()[0] ^= 0xFF;
+    
+    // Alice tries to decrypt Bob's message, and sees that it's corrupted
+    decryptedMessageLen = AlicesContactForBob.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+    LGTC_ENSURE(decryptedMessageLen == 0);
+    if (decryptedMessageLen == 0)
+        cout << "Alice realizes that Bob's message got corrupted in transit" << endl << endl;
+    else
+        cerr << "ERROR!!!: Alice managed to decrypt corrupt message from Bob, something is wrong" << endl << endl;
+    
+    // Alice asks Bob to resend his previous message (via transport protocol, outside of scope of crypto)
+    
+    // Alice sends Bob another message
+    cleartextMessageStr = "Greetings and Salutations";
+    cleartextMessageLen = cleartextMessageStr.size();
+    encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+    LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
+    cout << "Alice encrypts another message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
+    << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Bob" << endl;
+    
+    // Bob decrypts and reads Alice's message
+    decryptedMessageLen = BobsContactForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+    if (decryptedMessageLen == 0) { // that would mean decryption failed
+        cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
+    } else { // decryption succeeded
+        decryptedMessageStr = string((char*) decryptedMessage.BytePtr(), decryptedMessageLen);
+        cout << "Bob decrypted another message from Alice: \"" << decryptedMessageStr << "\" (" << encryptedMessageLen << " bytes before decryption, " \
+        << decryptedMessageLen << " bytes after decryption)" << endl;
+        if (0 != decryptedMessageStr.compare(cleartextMessageStr))
+            cerr << "ERROR!!!: Message decrypted by Bob doesn't match one sent by Alice" << endl << endl;
     }
-
-    FileSink sink([archivePath cStringUsingEncoding:NSASCIIStringEncoding]);
-    key.Save(sink);
-}
-
-void LoadPrivateKey(PrivateKey& key, const string& file)
-{
-    NSString *fileName = [NSString stringWithCString:file.c_str()
-                                            encoding:[NSString defaultCStringEncoding]];
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documemtDirectory = documentDirectories[0];
-    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
-    BOOL exists = [fileManager fileExistsAtPath:archivePath];
-    if(exists) {
-        FileSource source([archivePath cStringUsingEncoding:NSASCIIStringEncoding], true);
-        key.Load(source);
+    LGTC_ENSURE(decryptedMessageLen > 0);
+    
+    // ----------------------------------------------------------------
+    
+    goTennaPrivateKeyType BobPrivateKey2;
+    goTennaPublicKeyType BobPublicKey2;
+    SecByteBlock BobPrivateKey2Exported, BobPublicKey2Exported;
+    
+    // Bob gets his goTenna radio and smartphone stolen. He buys another smartphone and
+    // goTenna radio, generates a new keypair, and sends his new public key to Alice.
+    BobPrivateKey2.Initialize(prng, ECC_CURVE);
+    BobPrivateKey2.AccessGroupParameters().SetPointCompression(true);
+    if (false == BobPrivateKey2.Validate (prng, 2))
+        throw runtime_error ("Bob's private key 2 validation failed");
+    cout << "Bob has generated private key 2:" << endl;
+    PrintPrivateKey(BobPrivateKey2);
+    BobPrivateKey2.MakePublicKey(BobPublicKey2);
+    BobPublicKey2.AccessGroupParameters().SetPointCompression(true);
+    if (false == BobPublicKey2.Validate (prng, 2))
+        throw runtime_error ("Bob's public key 2 validation failed");
+    cout << endl << "Bob has generated public key 2:" << endl;
+    PrintPublicKey(BobPublicKey2);
+    
+    // Bob receives Alice's public key again
+    cryptoContactType BobsContact2ForAlice(BobPrivateKey2, BobPublicKey2, AlicePublicKeyBytes, AlicePublicKeyExportedLen);
+    
+    // Bob sends his new public key to Alice
+    size_t BobPublicKey2ExportedLen = publicKeyToBytes(BobPublicKey2, BobPublicKey2Exported);
+    cout << "Bob's public key 2 takes " + IntToString(BobPublicKeyExportedLen) + " bytes in exported format" << endl;
+    const byte *BobPublicKey2Bytes = BobPublicKey2Exported.BytePtr();
+    
+    // Alice updates her contact for Bob with his new public key
+    AlicesContactForBob.updateTheirPublicKey(BobPublicKey2Bytes, BobPublicKey2ExportedLen);
+    
+    // Alice sends Bob a message, encrypted to his new key
+    cleartextMessageStr = "Bob, I'm sorry you lost your phone";
+    cleartextMessageLen = cleartextMessageStr.size();
+    encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+    LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
+    cout << endl << "Alice encrypts message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
+    << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) to Bob's new key and sends it to him" << endl;
+    
+    // Bob decrypts Alice's message with his new key
+    decryptedMessageLen = BobsContact2ForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+    if (decryptedMessageLen == 0) { // that would mean decryption failed
+        cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
+    } else { // decryption succeeded
+        decryptedMessageStr = string((char*) decryptedMessage.BytePtr(), decryptedMessageLen);
+        cout << "Bob decrypted message from Alice with his new key: \"" << decryptedMessageStr << "\" (" << encryptedMessageLen << " bytes before decryption, " \
+        << decryptedMessageLen << " bytes after decryption)" << endl;
+        if (0 != decryptedMessageStr.compare(cleartextMessageStr))
+            cerr << "ERROR!!!: Message decrypted by Bob doesn't match one sent by Alice" << endl;
     }
+    LGTC_ENSURE(decryptedMessageLen > 0);
 }
 
-void LoadPublicKey(PublicKey& key, const string& file)
-{
-    NSString *fileName = [NSString stringWithCString:file.c_str()
-                                            encoding:[NSString defaultCStringEncoding]];
-    NSFileManager *fileManager = [NSFileManager defaultManager];
-    NSArray *documentDirectories = NSSearchPathForDirectoriesInDomains(NSDocumentDirectory, NSUserDomainMask, YES);
-    NSString *documemtDirectory = documentDirectories[0];
-    NSString *archivePath = [documemtDirectory stringByAppendingPathComponent:fileName];
-    BOOL exists = [fileManager fileExistsAtPath:archivePath];
-    if(exists) {
-        FileSource source([archivePath cStringUsingEncoding:NSASCIIStringEncoding], true);
-        key.Load(source);
-    }
-}
-
-void PrintPrivateKey(const DL_PrivateKey_EC<ECP>& key, ostream& out)
-{
+void PrintPrivateKey(const goTennaPrivateKeyType& key, ostream& out) {
     const std::ios_base::fmtflags flags = out.flags();
-
+    
     // Group parameters
     const DL_GroupParameters_EC<ECP>& params = key.GetGroupParameters();
     // Base precomputation
     const DL_FixedBasePrecomputation<ECPPoint>& bpc = params.GetBasePrecomputation();
     // Public Key (just do the exponentiation)
     const ECPPoint point = bpc.Exponentiate(params.GetGroupPrecomputation(), key.GetPrivateExponent());
-
+    
     out << "Modulus: " << std::hex << params.GetCurve().GetField().GetModulus() << endl;
     out << "Cofactor: " << std::hex << params.GetCofactor() << endl;
-
+    
     out << "Coefficients" << endl;
     out << "  A: " << std::hex << params.GetCurve().GetA() << endl;
     out << "  B: " << std::hex << params.GetCurve().GetB() << endl;
-
+    
     out << "Base Point" << endl;
     out << "  x: " << std::hex << params.GetSubgroupGenerator().x << endl;
     out << "  y: " << std::hex << params.GetSubgroupGenerator().y << endl;
-
+    
     out << "Public Point" << endl;
     out << "  x: " << std::hex << point.x << endl;
     out << "  y: " << std::hex << point.y << endl;
-
+    
     out << "Private Exponent (multiplicand): " << endl;
     out << "  " << std::hex << key.GetPrivateExponent() << endl;
-
+    
     out << endl;
     out.flags(flags);
 }
 
-void PrintPublicKey(const DL_PublicKey_EC<ECP>& key, ostream& out)
-{
+void PrintPublicKey(const goTennaPublicKeyType& key, ostream& out) {
     const std::ios_base::fmtflags flags = out.flags();
-
+    
     // Group parameters
     const DL_GroupParameters_EC<ECP>& params = key.GetGroupParameters();
     // Public key
     const ECPPoint& point = key.GetPublicElement();
-
+    
     out << "Modulus: " << std::hex << params.GetCurve().GetField().GetModulus() << endl;
     out << "Cofactor: " << std::hex << params.GetCofactor() << endl;
-
+    
     out << "Coefficients" << endl;
     out << "  A: " << std::hex << params.GetCurve().GetA() << endl;
     out << "  B: " << std::hex << params.GetCurve().GetB() << endl;
-
+    
     out << "Base Point" << endl;
     out << "  x: " << std::hex << params.GetSubgroupGenerator().x << endl;
     out << "  y: " << std::hex << params.GetSubgroupGenerator().y << endl;
-
+    
     out << "Public Point" << endl;
     out << "  x: " << std::hex << point.x << endl;
     out << "  y: " << std::hex << point.y << endl;
@@ -282,6 +315,5 @@ void PrintPublicKey(const DL_PublicKey_EC<ECP>& key, ostream& out)
     out << endl;
     out.flags(flags);
 }
-
 
 @end

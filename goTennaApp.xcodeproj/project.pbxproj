@@ -33,6 +33,7 @@
 		2760A4C31A842C36000910EB /* UIKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = 2760A4C21A842C36000910EB /* UIKit.framework */; };
 		2760A4D41A852876000910EB /* EncryptionService.m in Sources */ = {isa = PBXBuildFile; fileRef = 2760A4D31A852876000910EB /* EncryptionService.m */; };
 		E2DC2C45252AAF669C133E5E /* libPods-UnitTests.a in Frameworks */ = {isa = PBXBuildFile; fileRef = 73A4286A4857F0A742134478 /* libPods-UnitTests.a */; };
+		F5B833B21AAF0919002D8CEB /* EncryptionService.m.prev in Sources */ = {isa = PBXBuildFile; fileRef = F5B833B11AAF0919002D8CEB /* EncryptionService.m.prev */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -83,6 +84,7 @@
 		78E36776DE06B464B587F7B5 /* Pods.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = Pods.release.xcconfig; path = "Pods/Target Support Files/Pods/Pods.release.xcconfig"; sourceTree = "<group>"; };
 		A81EDF8DDE98CB191C12D327 /* Pods-UnitTests.release.xcconfig */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = text.xcconfig; name = "Pods-UnitTests.release.xcconfig"; path = "Pods/Target Support Files/Pods-UnitTests/Pods-UnitTests.release.xcconfig"; sourceTree = "<group>"; };
 		E494B78D091830E020F742B5 /* libPods.a */ = {isa = PBXFileReference; explicitFileType = archive.ar; includeInIndex = 0; path = libPods.a; sourceTree = BUILT_PRODUCTS_DIR; };
+		F5B833B11AAF0919002D8CEB /* EncryptionService.m.prev */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; path = EncryptionService.m.prev; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -155,6 +157,7 @@
 				2760A44F1A8425AD000910EB /* Supporting Files */,
 				2760A4D21A852876000910EB /* EncryptionService.h */,
 				2760A4D31A852876000910EB /* EncryptionService.m */,
+				F5B833B11AAF0919002D8CEB /* EncryptionService.m.prev */,
 			);
 			path = goTennaApp;
 			sourceTree = "<group>";
@@ -388,6 +391,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				2760A4551A8425AD000910EB /* AppDelegate.m in Sources */,
+				F5B833B21AAF0919002D8CEB /* EncryptionService.m.prev in Sources */,
 				2760A4D41A852876000910EB /* EncryptionService.m in Sources */,
 				2760A4521A8425AD000910EB /* main.m in Sources */,
 				2760A45B1A8425AD000910EB /* ViewController.m in Sources */,
