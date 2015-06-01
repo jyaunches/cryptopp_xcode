@@ -129,9 +129,7 @@ typedef goTennaCryptoContactECIES cryptoContactType;
 		cout << "Alice and Bob successfully calculated identical shared secret " << endl;
 	else
     	cerr << "ERROR!!!: Alice and Bob failed to calculate same shared secret" << endl;
-
-    // Alice initiates a session with Bob: differs per protocol, happens implicitly inside encryptMessage/decryptMessage calls, on as-needed basis
-    
+   
     // Alice encrypts and sends a text message to Bob
     string cleartextMessageStr = "1234567890", decryptedMessageStr;
     size_t cleartextMessageLen = cleartextMessageStr.size();
