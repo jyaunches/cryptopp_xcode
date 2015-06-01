@@ -263,7 +263,7 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Alice updates her contact for Bob with his new public key
     AlicesContactForBob.updateTheirPublicKey(BobPublicKey2Bytes, BobPublicKey2ExportedLen);
     
-	// Alice calculates shared secret with Bob
+	// Alice calculates new shared secret with Bob
 	SecByteBlock sharedSecretAliceBytes2 = AlicesContactForBob.getSharedSecret();
 	sharedSecretAliceInt.Decode(sharedSecretAliceBytes2.BytePtr(), sharedSecretAliceBytes2.SizeInBytes());
 	cout << "Alice calculates new shared secret " << std::hex << sharedSecretAliceInt << " with Bob" << std::dec << endl;
