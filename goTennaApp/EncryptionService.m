@@ -278,7 +278,7 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Alice sends Bob a message, encrypted to his new key
     cleartextMessageStr = "Bob, I'm sorry you lost your phone";
     cleartextMessageLen = cleartextMessageStr.size();
-// -------- ENCRYPTION BLOCK --------
+// -------- ENCRYPTION BLOCK ---------
 	// !!! FIXME !!! delete the below, and plug-in actual encryption
 	encryptedMessage.Assign((byte *) cleartextMessageStr.c_str(), cleartextMessageStr.size());
 	encryptedMessageLen = cleartextMessageLen;

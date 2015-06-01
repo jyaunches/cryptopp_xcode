@@ -184,8 +184,8 @@ typedef goTennaCryptoContactECIES cryptoContactType;
         if (0 != decryptedMessageStr.compare(cleartextMessageStr))
             cerr << "ERROR!!!: Message decrypted by Bob doesn't match one sent by Alice" << endl << endl;
     }
-    LGTC_ENSURE(decryptedMessageLen > 0);
-    
+LGTC_ENSURE(decryptedMessageLen > 0);
+
     // ----------------------------------------------------------------
     
     goTennaPrivateKeyType BobPrivateKey2;
