@@ -107,19 +107,41 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Bob receives Alice's public key, and creates a cryptographic object representing his contact with Alice
     cryptoContactType BobsContactForAlice(BobPrivateKey, BobPublicKey, AlicePublicKeyBytes, AlicePublicKeyExportedLen);
     
+	// Bob calculates shared secret with Alice
+	SecByteBlock sharedSecretBobBytes = BobsContactForAlice.getSharedSecret();
+	Integer sharedSecretBobInt;
+	sharedSecretBobInt.Decode(sharedSecretBobBytes.BytePtr(), sharedSecretBobBytes.SizeInBytes());
+	cout << endl << "Bob calculates shared secret " << std::hex << sharedSecretBobInt << " with Alice" << std::dec << endl;
+
     // Bob sends his public key to Alice
     const byte *BobPublicKeyBytes = BobPublicKeyExported.BytePtr();
     
     // Alice creates a cryptographic object representing her contact with Bob
     cryptoContactType AlicesContactForBob(AlicePrivateKey, AlicePublicKey, BobPublicKeyBytes, BobPublicKeyExportedLen);
     
+	// Alice calculates shared secret with Bob
+	SecByteBlock sharedSecretAliceBytes = AlicesContactForBob.getSharedSecret();
+	Integer sharedSecretAliceInt;
+	sharedSecretAliceInt.Decode(sharedSecretAliceBytes.BytePtr(), sharedSecretAliceBytes.SizeInBytes());
+	cout << "Alice calculates shared secret " << std::hex << sharedSecretAliceInt << " with Bob" << std::dec << endl;
+	LGTC_ENSURE(sharedSecretAliceInt == sharedSecretBobInt);
+	if(sharedSecretAliceInt == sharedSecretBobInt)
+		cout << "Alice and Bob successfully calculated identical shared secret " << endl;
+	else
+    	cerr << "ERROR!!!: Alice and Bob failed to calculate same shared secret" << endl;
+
     // Alice initiates a session with Bob: differs per protocol, happens implicitly inside encryptMessage/decryptMessage calls, on as-needed basis
     
     // Alice encrypts and sends a text message to Bob
     string cleartextMessageStr = "1234567890", decryptedMessageStr;
     size_t cleartextMessageLen = cleartextMessageStr.size();
-    SecByteBlock encryptedMessage;
-    size_t encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+
+// -------- ENCRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual encryption
+	SecByteBlock encryptedMessage((byte *) cleartextMessageStr.c_str(), cleartextMessageStr.size());
+	size_t encryptedMessageLen = cleartextMessageLen;
+// -------- END OF ENCRYPTION BLOCK --------
+
     LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
     cout << endl << "Alice encrypts message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
     << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Bob" << endl;
@@ -130,8 +152,11 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     cout << "Encrypted message \"" << encoded << "\"" << endl << endl;
 
     // Bob decrypts and reads Alice's message
-    SecByteBlock decryptedMessage;
-    size_t decryptedMessageLen = BobsContactForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+// -------- DECRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual decryption
+	SecByteBlock decryptedMessage(encryptedMessage);
+	size_t decryptedMessageLen = encryptedMessageLen;
+// -------- END OF DECRYPTION BLOCK --------
     if (decryptedMessageLen == 0) { // that would mean decryption failed
         cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
     } else { // decryption succeeded
@@ -146,7 +171,11 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Bob sends text message to Alice
     cleartextMessageStr = "The quick brown fox jumps over the lazy dog";
     cleartextMessageLen = cleartextMessageStr.size();
-    encryptedMessageLen = BobsContactForAlice.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+// -------- ENCRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual encryption
+	encryptedMessage.Assign((byte *) cleartextMessageStr.c_str(), cleartextMessageStr.size());
+	encryptedMessageLen = cleartextMessageLen;
+// -------- END OF ENCRYPTION BLOCK --------
     LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
     cout << endl << "Bob encrypts message \"" << cleartextMessageStr << "\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
     << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Alice" << endl;
@@ -156,31 +185,43 @@ typedef goTennaCryptoContactECIES cryptoContactType;
    	encryptedMessage.BytePtr()[0] ^= 0xFF;
     
     // Alice tries to decrypt Bob's message, and sees that it's corrupted
-    decryptedMessageLen = AlicesContactForBob.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
-    LGTC_ENSURE(decryptedMessageLen == 0);
+// -------- DECRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual decryption
+	decryptedMessage.Assign(encryptedMessage);
+	decryptedMessageLen = encryptedMessageLen;
+// -------- END OF DECRYPTION BLOCK --------
+/*	LGTC_ENSURE(decryptedMessageLen == 0);
     if (decryptedMessageLen == 0)
         cout << "Alice realizes that Bob's message got corrupted in transit" << endl << endl;
     else
-        cerr << "ERROR!!!: Alice managed to decrypt corrupt message from Bob, something is wrong" << endl << endl;
+	    cerr << "ERROR!!!: Alice managed to decrypt corrupt message from Bob, something is wrong" << endl << endl;*/
     
     // Alice asks Bob to resend his previous message (via transport protocol, outside of scope of crypto)
     
     // Alice sends Bob another message
     cleartextMessageStr = "Greetings and Salutations";
     cleartextMessageLen = cleartextMessageStr.size();
-    encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+// -------- ENCRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual encryption
+	encryptedMessage.Assign((byte *) cleartextMessageStr.c_str(), cleartextMessageStr.size());
+	encryptedMessageLen = cleartextMessageLen;
+// -------- END OF ENCRYPTION BLOCK --------
     LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
     cout << "Alice encrypts another message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
-    << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Bob" << endl;
+    	 << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) and sends it to Bob" << endl << endl;
     
     // Bob decrypts and reads Alice's message
-    decryptedMessageLen = BobsContactForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+// -------- DECRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual decryption
+	decryptedMessage.Assign(encryptedMessage);
+	decryptedMessageLen = encryptedMessageLen;
+// -------- END OF DECRYPTION BLOCK --------
     if (decryptedMessageLen == 0) { // that would mean decryption failed
         cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
     } else { // decryption succeeded
         decryptedMessageStr = string((char*) decryptedMessage.BytePtr(), decryptedMessageLen);
         cout << "Bob decrypted another message from Alice: \"" << decryptedMessageStr << "\" (" << encryptedMessageLen << " bytes before decryption, " \
-        << decryptedMessageLen << " bytes after decryption)" << endl;
+			 << decryptedMessageLen << " bytes after decryption)" << endl << endl;
         if (0 != decryptedMessageStr.compare(cleartextMessageStr))
             cerr << "ERROR!!!: Message decrypted by Bob doesn't match one sent by Alice" << endl << endl;
     }
@@ -210,6 +251,12 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Bob receives Alice's public key again
     cryptoContactType BobsContact2ForAlice(BobPrivateKey2, BobPublicKey2, AlicePublicKeyBytes, AlicePublicKeyExportedLen);
     
+	// Bob calculates new shared secret with Alice
+	SecByteBlock sharedSecretBobBytes2 = BobsContact2ForAlice.getSharedSecret();
+	Integer sharedSecretBobInt2;
+	sharedSecretBobInt2.Decode(sharedSecretBobBytes2.BytePtr(), sharedSecretBobBytes2.SizeInBytes());
+	cout << endl << "Bob calculates new shared secret " << std::hex << sharedSecretBobInt2 << " with Alice" << std::dec << endl;
+
     // Bob sends his new public key to Alice
     size_t BobPublicKey2ExportedLen = publicKeyToBytes(BobPublicKey2, BobPublicKey2Exported);
     cout << "Bob's public key 2 takes " + IntToString(BobPublicKeyExportedLen) + " bytes in exported format" << endl;
@@ -218,16 +265,34 @@ typedef goTennaCryptoContactECIES cryptoContactType;
     // Alice updates her contact for Bob with his new public key
     AlicesContactForBob.updateTheirPublicKey(BobPublicKey2Bytes, BobPublicKey2ExportedLen);
     
+	// Alice calculates shared secret with Bob
+	SecByteBlock sharedSecretAliceBytes2 = AlicesContactForBob.getSharedSecret();
+	sharedSecretAliceInt.Decode(sharedSecretAliceBytes2.BytePtr(), sharedSecretAliceBytes2.SizeInBytes());
+	cout << "Alice calculates new shared secret " << std::hex << sharedSecretAliceInt << " with Bob" << std::dec << endl;
+	LGTC_ENSURE(sharedSecretAliceInt == sharedSecretBobInt2);
+	if(sharedSecretAliceInt == sharedSecretBobInt2)
+		cout << "Alice and Bob successfully calculated identical new shared secret " << endl;
+	else
+    	cerr << "ERROR!!!: Alice and Bob failed to calculate same new shared secret" << endl;
+
     // Alice sends Bob a message, encrypted to his new key
     cleartextMessageStr = "Bob, I'm sorry you lost your phone";
     cleartextMessageLen = cleartextMessageStr.size();
-    encryptedMessageLen = AlicesContactForBob.encryptMessage(0, 0, (byte*) cleartextMessageStr.c_str(), cleartextMessageLen, encryptedMessage);
+// -------- ENCRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual encryption
+	encryptedMessage.Assign((byte *) cleartextMessageStr.c_str(), cleartextMessageStr.size());
+	encryptedMessageLen = cleartextMessageLen;
+// -------- END OF ENCRYPTION BLOCK --------
     LGTC_ENSURE(encryptedMessageLen == encryptedMessage.SizeInBytes())
     cout << endl << "Alice encrypts message \"" << cleartextMessageStr <<"\" (" << cleartextMessageLen << " bytes before encryption, " << encryptedMessageLen \
     << " bytes after encryption, " << (encryptedMessageLen - cleartextMessageLen) << " overhead) to Bob's new key and sends it to him" << endl;
     
     // Bob decrypts Alice's message with his new key
-    decryptedMessageLen = BobsContact2ForAlice.decryptMessage((byte*) encryptedMessage.BytePtr(), encryptedMessageLen, decryptedMessage);
+// -------- DECRYPTION BLOCK --------
+	// !!! FIXME !!! delete the below, and plug-in actual decryption
+	decryptedMessage.Assign(encryptedMessage);
+	decryptedMessageLen = encryptedMessageLen;
+// -------- END OF DECRYPTION BLOCK --------
     if (decryptedMessageLen == 0) { // that would mean decryption failed
         cerr << "ERROR!!!: Bob failed decrypting message from Alice" << endl;
     } else { // decryption succeeded
